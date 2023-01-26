@@ -6,6 +6,7 @@ export default function Intrinsic() {
     if (checkerFunction(checkerInputs.dx, checkerInputs.dy, checkerInputs.rows, checkerInputs.cols) !== 1) {
       console.log('fail to transfer param to WASM!');
     }
+    console.log("wasm!!!")
   }
 
 
