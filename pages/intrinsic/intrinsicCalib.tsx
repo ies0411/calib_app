@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 var createModule = (() => {
-  var _scriptDir = import.meta.url;
+  // var _scriptDir = import.meta.url;
 
   return function (createModule) {
     createModule = createModule || {};
