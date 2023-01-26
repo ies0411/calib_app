@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 var createModule = (() => {
-  // var _scriptDir = import.meta.url;
+  var _scriptDir = import.meta.url;
 
   return function (createModule) {
     createModule = createModule || {};
@@ -275,10 +275,8 @@ var createModule = (() => {
       }
     }
     function abort(what) {
-      {
-        if (Module['onAbort']) {
-          Module['onAbort'](what);
-        }
+      if (Module['onAbort']) {
+        Module['onAbort'](what);
       }
       what = 'Aborted(' + what + ')';
       err(what);
@@ -298,12 +296,12 @@ var createModule = (() => {
     }
     var wasmBinaryFile;
     if (Module['locateFile']) {
-      wasmBinaryFile = 'extrinsicCalib.wasm';
+      wasmBinaryFile = 'intrinsicCalib.wasm';
       if (!isDataURI(wasmBinaryFile)) {
         wasmBinaryFile = locateFile(wasmBinaryFile);
       }
     } else {
-      wasmBinaryFile = new URL('extrinsicCalib.wasm', import.meta.url).toString();
+      wasmBinaryFile = new URL('intrinsicCalib.wasm', import.meta.url).toString();
     }
     function getBinary(file) {
       try {
@@ -354,10 +352,10 @@ var createModule = (() => {
       function receiveInstance(instance, module) {
         var exports = instance.exports;
         Module['asm'] = exports;
-        wasmMemory = Module['asm']['V'];
+        wasmMemory = Module['asm']['E'];
         updateGlobalBufferAndViews(wasmMemory.buffer);
-        wasmTable = Module['asm']['da'];
-        addOnInit(Module['asm']['W']);
+        wasmTable = Module['asm']['P'];
+        addOnInit(Module['asm']['F']);
         removeRunDependency('wasm-instantiate');
       }
       addRunDependency('wasm-instantiate');
@@ -421,37 +419,8 @@ var createModule = (() => {
         callbacks.shift()(Module);
       }
     }
-    function writeArrayToMemory(array, buffer) {
-      HEAP8.set(array, buffer);
-    }
-    function ___assert_fail(condition, filename, line, func) {
-      abort(
-        'Assertion failed: ' +
-          UTF8ToString(condition) +
-          ', at: ' +
-          [filename ? UTF8ToString(filename) : 'unknown filename', line, func ? UTF8ToString(func) : 'unknown function']
-      );
-    }
     function ___cxa_allocate_exception(size) {
       return _malloc(size + 24) + 24;
-    }
-    var exceptionCaught = [];
-    var exceptionLast = 0;
-    var uncaughtExceptionCount = 0;
-    function ___cxa_rethrow() {
-      var info = exceptionCaught.pop();
-      if (!info) {
-        abort('no exception to throw');
-      }
-      var ptr = info.excPtr;
-      if (!info.get_rethrown()) {
-        exceptionCaught.push(info);
-        info.set_rethrown(true);
-        info.set_caught(false);
-        uncaughtExceptionCount++;
-      }
-      exceptionLast = ptr;
-      throw ptr;
     }
     function ExceptionInfo(excPtr) {
       this.excPtr = excPtr;
@@ -518,6 +487,8 @@ var createModule = (() => {
         return this.excPtr;
       };
     }
+    var exceptionLast = 0;
+    var uncaughtExceptionCount = 0;
     function ___cxa_throw(ptr, type, destructor) {
       var info = new ExceptionInfo(ptr);
       info.init(type, destructor);
@@ -786,18 +757,8 @@ var createModule = (() => {
         },
       },
     };
-    function zeroMemory(address, size) {
-      HEAPU8.fill(0, address, address + size);
-      return address;
-    }
-    function alignMemory(size, alignment) {
-      return Math.ceil(size / alignment) * alignment;
-    }
     function mmapAlloc(size) {
-      size = alignMemory(size, 65536);
-      var ptr = _emscripten_builtin_memalign(65536, size);
-      if (!ptr) return 0;
-      return zeroMemory(ptr, size);
+      abort();
     }
     var MEMFS = {
       ops_table: null,
@@ -1127,17 +1088,14 @@ var createModule = (() => {
       filesystems: null,
       syncFSRequests: 0,
       lookupPath: (path, opts = {}) => {
-        path = PATH_FS.resolve(FS.cwd(), path);
+        path = PATH_FS.resolve(path);
         if (!path) return { path: '', node: null };
         var defaults = { follow_mount: true, recurse_count: 0 };
         opts = Object.assign(defaults, opts);
         if (opts.recurse_count > 8) {
           throw new FS.ErrnoError(32);
         }
-        var parts = PATH.normalizeArray(
-          path.split('/').filter((p) => !!p),
-          false
-        );
+        var parts = path.split('/').filter((p) => !!p);
         var current = FS.root;
         var current_path = '/';
         for (var i = 0; i < parts.length; i++) {
@@ -2778,67 +2736,6 @@ var createModule = (() => {
         return -e.errno;
       }
     }
-    function ___syscall_getdents64(fd, dirp, count) {
-      try {
-        var stream = SYSCALLS.getStreamFromFD(fd);
-        if (!stream.getdents) {
-          stream.getdents = FS.readdir(stream.path);
-        }
-        var struct_size = 280;
-        var pos = 0;
-        var off = FS.llseek(stream, 0, 1);
-        var idx = Math.floor(off / struct_size);
-        while (idx < stream.getdents.length && pos + struct_size <= count) {
-          var id;
-          var type;
-          var name = stream.getdents[idx];
-          if (name === '.') {
-            id = stream.node.id;
-            type = 4;
-          } else if (name === '..') {
-            var lookup = FS.lookupPath(stream.path, { parent: true });
-            id = lookup.node.id;
-            type = 4;
-          } else {
-            var child = FS.lookupNode(stream.node, name);
-            id = child.id;
-            type = FS.isChrdev(child.mode) ? 2 : FS.isDir(child.mode) ? 4 : FS.isLink(child.mode) ? 10 : 8;
-          }
-          (tempI64 = [
-            id >>> 0,
-            ((tempDouble = id),
-            +Math.abs(tempDouble) >= 1
-              ? tempDouble > 0
-                ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0
-                : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0
-              : 0),
-          ]),
-            (HEAP32[(dirp + pos) >> 2] = tempI64[0]),
-            (HEAP32[(dirp + pos + 4) >> 2] = tempI64[1]);
-          (tempI64 = [
-            ((idx + 1) * struct_size) >>> 0,
-            ((tempDouble = (idx + 1) * struct_size),
-            +Math.abs(tempDouble) >= 1
-              ? tempDouble > 0
-                ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0
-                : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0
-              : 0),
-          ]),
-            (HEAP32[(dirp + pos + 8) >> 2] = tempI64[0]),
-            (HEAP32[(dirp + pos + 12) >> 2] = tempI64[1]);
-          HEAP16[(dirp + pos + 16) >> 1] = 280;
-          HEAP8[(dirp + pos + 18) >> 0] = type;
-          stringToUTF8(name, dirp + pos + 19, 256);
-          pos += struct_size;
-          idx += 1;
-        }
-        FS.llseek(stream, idx * struct_size, 0);
-        return pos;
-      } catch (e) {
-        if (typeof FS == 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
-        return -e.errno;
-      }
-    }
     function ___syscall_ioctl(fd, op, varargs) {
       SYSCALLS.varargs = varargs;
       try {
@@ -2888,28 +2785,6 @@ var createModule = (() => {
         return -e.errno;
       }
     }
-    function ___syscall_lstat64(path, buf) {
-      try {
-        path = SYSCALLS.getStr(path);
-        return SYSCALLS.doStat(FS.lstat, path, buf);
-      } catch (e) {
-        if (typeof FS == 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
-        return -e.errno;
-      }
-    }
-    function ___syscall_newfstatat(dirfd, path, buf, flags) {
-      try {
-        path = SYSCALLS.getStr(path);
-        var nofollow = flags & 256;
-        var allowEmpty = flags & 4096;
-        flags = flags & ~4352;
-        path = SYSCALLS.calculateAt(dirfd, path, allowEmpty);
-        return SYSCALLS.doStat(nofollow ? FS.lstat : FS.stat, path, buf);
-      } catch (e) {
-        if (typeof FS == 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
-        return -e.errno;
-      }
-    }
     function ___syscall_openat(dirfd, path, flags, varargs) {
       SYSCALLS.varargs = varargs;
       try {
@@ -2922,43 +2797,6 @@ var createModule = (() => {
         return -e.errno;
       }
     }
-    function ___syscall_stat64(path, buf) {
-      try {
-        path = SYSCALLS.getStr(path);
-        return SYSCALLS.doStat(FS.stat, path, buf);
-      } catch (e) {
-        if (typeof FS == 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
-        return -e.errno;
-      }
-    }
-    function ___syscall_symlink(target, linkpath) {
-      try {
-        target = SYSCALLS.getStr(target);
-        linkpath = SYSCALLS.getStr(linkpath);
-        FS.symlink(target, linkpath);
-        return 0;
-      } catch (e) {
-        if (typeof FS == 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
-        return -e.errno;
-      }
-    }
-    function ___syscall_unlinkat(dirfd, path, flags) {
-      try {
-        path = SYSCALLS.getStr(path);
-        path = SYSCALLS.calculateAt(dirfd, path);
-        if (flags === 0) {
-          FS.unlink(path);
-        } else if (flags === 512) {
-          FS.rmdir(path);
-        } else {
-          abort('Invalid flags passed to unlinkat');
-        }
-        return 0;
-      } catch (e) {
-        if (typeof FS == 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
-        return -e.errno;
-      }
-    }
     var nowIsMonotonic = true;
     function __emscripten_get_now_is_monotonic() {
       return nowIsMonotonic;
@@ -2966,140 +2804,8 @@ var createModule = (() => {
     function __emscripten_throw_longjmp() {
       throw Infinity;
     }
-    function readI53FromI64(ptr) {
-      return HEAPU32[ptr >> 2] + HEAP32[(ptr + 4) >> 2] * 4294967296;
-    }
-    function __gmtime_js(time, tmPtr) {
-      var date = new Date(readI53FromI64(time) * 1e3);
-      HEAP32[tmPtr >> 2] = date.getUTCSeconds();
-      HEAP32[(tmPtr + 4) >> 2] = date.getUTCMinutes();
-      HEAP32[(tmPtr + 8) >> 2] = date.getUTCHours();
-      HEAP32[(tmPtr + 12) >> 2] = date.getUTCDate();
-      HEAP32[(tmPtr + 16) >> 2] = date.getUTCMonth();
-      HEAP32[(tmPtr + 20) >> 2] = date.getUTCFullYear() - 1900;
-      HEAP32[(tmPtr + 24) >> 2] = date.getUTCDay();
-      var start = Date.UTC(date.getUTCFullYear(), 0, 1, 0, 0, 0, 0);
-      var yday = ((date.getTime() - start) / (1e3 * 60 * 60 * 24)) | 0;
-      HEAP32[(tmPtr + 28) >> 2] = yday;
-    }
-    function __localtime_js(time, tmPtr) {
-      var date = new Date(readI53FromI64(time) * 1e3);
-      HEAP32[tmPtr >> 2] = date.getSeconds();
-      HEAP32[(tmPtr + 4) >> 2] = date.getMinutes();
-      HEAP32[(tmPtr + 8) >> 2] = date.getHours();
-      HEAP32[(tmPtr + 12) >> 2] = date.getDate();
-      HEAP32[(tmPtr + 16) >> 2] = date.getMonth();
-      HEAP32[(tmPtr + 20) >> 2] = date.getFullYear() - 1900;
-      HEAP32[(tmPtr + 24) >> 2] = date.getDay();
-      var start = new Date(date.getFullYear(), 0, 1);
-      var yday = ((date.getTime() - start.getTime()) / (1e3 * 60 * 60 * 24)) | 0;
-      HEAP32[(tmPtr + 28) >> 2] = yday;
-      HEAP32[(tmPtr + 36) >> 2] = -(date.getTimezoneOffset() * 60);
-      var summerOffset = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
-      var winterOffset = start.getTimezoneOffset();
-      var dst = (summerOffset != winterOffset && date.getTimezoneOffset() == Math.min(winterOffset, summerOffset)) | 0;
-      HEAP32[(tmPtr + 32) >> 2] = dst;
-    }
-    function __mktime_js(tmPtr) {
-      var date = new Date(
-        HEAP32[(tmPtr + 20) >> 2] + 1900,
-        HEAP32[(tmPtr + 16) >> 2],
-        HEAP32[(tmPtr + 12) >> 2],
-        HEAP32[(tmPtr + 8) >> 2],
-        HEAP32[(tmPtr + 4) >> 2],
-        HEAP32[tmPtr >> 2],
-        0
-      );
-      var dst = HEAP32[(tmPtr + 32) >> 2];
-      var guessedOffset = date.getTimezoneOffset();
-      var start = new Date(date.getFullYear(), 0, 1);
-      var summerOffset = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
-      var winterOffset = start.getTimezoneOffset();
-      var dstOffset = Math.min(winterOffset, summerOffset);
-      if (dst < 0) {
-        HEAP32[(tmPtr + 32) >> 2] = Number(summerOffset != winterOffset && dstOffset == guessedOffset);
-      } else if (dst > 0 != (dstOffset == guessedOffset)) {
-        var nonDstOffset = Math.max(winterOffset, summerOffset);
-        var trueOffset = dst > 0 ? dstOffset : nonDstOffset;
-        date.setTime(date.getTime() + (trueOffset - guessedOffset) * 6e4);
-      }
-      HEAP32[(tmPtr + 24) >> 2] = date.getDay();
-      var yday = ((date.getTime() - start.getTime()) / (1e3 * 60 * 60 * 24)) | 0;
-      HEAP32[(tmPtr + 28) >> 2] = yday;
-      HEAP32[tmPtr >> 2] = date.getSeconds();
-      HEAP32[(tmPtr + 4) >> 2] = date.getMinutes();
-      HEAP32[(tmPtr + 8) >> 2] = date.getHours();
-      HEAP32[(tmPtr + 12) >> 2] = date.getDate();
-      HEAP32[(tmPtr + 16) >> 2] = date.getMonth();
-      HEAP32[(tmPtr + 20) >> 2] = date.getYear();
-      return (date.getTime() / 1e3) | 0;
-    }
-    function __mmap_js(len, prot, flags, fd, off, allocated, addr) {
-      try {
-        var stream = SYSCALLS.getStreamFromFD(fd);
-        var res = FS.mmap(stream, len, off, prot, flags);
-        var ptr = res.ptr;
-        HEAP32[allocated >> 2] = res.allocated;
-        HEAPU32[addr >> 2] = ptr;
-        return 0;
-      } catch (e) {
-        if (typeof FS == 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
-        return -e.errno;
-      }
-    }
-    function __munmap_js(addr, len, prot, flags, fd, offset) {
-      try {
-        var stream = SYSCALLS.getStreamFromFD(fd);
-        if (prot & 2) {
-          SYSCALLS.doMsync(addr, stream, len, flags, offset);
-        }
-        FS.munmap(stream);
-      } catch (e) {
-        if (typeof FS == 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
-        return -e.errno;
-      }
-    }
-    function allocateUTF8(str) {
-      var size = lengthBytesUTF8(str) + 1;
-      var ret = _malloc(size);
-      if (ret) stringToUTF8Array(str, HEAP8, ret, size);
-      return ret;
-    }
-    function _tzset_impl(timezone, daylight, tzname) {
-      var currentYear = new Date().getFullYear();
-      var winter = new Date(currentYear, 0, 1);
-      var summer = new Date(currentYear, 6, 1);
-      var winterOffset = winter.getTimezoneOffset();
-      var summerOffset = summer.getTimezoneOffset();
-      var stdTimezoneOffset = Math.max(winterOffset, summerOffset);
-      HEAP32[timezone >> 2] = stdTimezoneOffset * 60;
-      HEAP32[daylight >> 2] = Number(winterOffset != summerOffset);
-      function extractZone(date) {
-        var match = date.toTimeString().match(/\(([A-Za-z ]+)\)$/);
-        return match ? match[1] : 'GMT';
-      }
-      var winterName = extractZone(winter);
-      var summerName = extractZone(summer);
-      var winterNamePtr = allocateUTF8(winterName);
-      var summerNamePtr = allocateUTF8(summerName);
-      if (summerOffset < winterOffset) {
-        HEAPU32[tzname >> 2] = winterNamePtr;
-        HEAPU32[(tzname + 4) >> 2] = summerNamePtr;
-      } else {
-        HEAPU32[tzname >> 2] = summerNamePtr;
-        HEAPU32[(tzname + 4) >> 2] = winterNamePtr;
-      }
-    }
-    function __tzset_js(timezone, daylight, tzname) {
-      if (__tzset_js.called) return;
-      __tzset_js.called = true;
-      _tzset_impl(timezone, daylight, tzname);
-    }
     function _abort() {
       abort('');
-    }
-    function _emscripten_date_now() {
-      return Date.now();
     }
     function getHeapMax() {
       return 2147483648;
@@ -3217,17 +2923,6 @@ var createModule = (() => {
         return e.errno;
       }
     }
-    function _fd_fdstat_get(fd, pbuf) {
-      try {
-        var stream = SYSCALLS.getStreamFromFD(fd);
-        var type = stream.tty ? 2 : FS.isDir(stream.mode) ? 3 : FS.isLink(stream.mode) ? 7 : 4;
-        HEAP8[pbuf >> 0] = type;
-        return 0;
-      } catch (e) {
-        if (typeof FS == 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
-        return e.errno;
-      }
-    }
     function doReadv(stream, iov, iovcnt, offset) {
       var ret = 0;
       for (var i = 0; i < iovcnt; i++) {
@@ -3302,15 +2997,6 @@ var createModule = (() => {
         return e.errno;
       }
     }
-    function _getentropy(buffer, size) {
-      if (!_getentropy.randomDevice) {
-        _getentropy.randomDevice = getRandomDevice();
-      }
-      for (var i = 0; i < size; i++) {
-        HEAP8[(buffer + i) >> 0] = _getentropy.randomDevice();
-      }
-      return 0;
-    }
     function __isLeapYear(year) {
       return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
     }
@@ -3342,6 +3028,9 @@ var createModule = (() => {
         }
       }
       return newDate;
+    }
+    function writeArrayToMemory(array, buffer) {
+      HEAP8.set(array, buffer);
     }
     function _strftime(s, maxsize, format, tm) {
       var tm_zone = HEAP32[(tm + 40) >> 2];
@@ -3592,7 +3281,7 @@ var createModule = (() => {
       writeArrayToMemory(bytes, s);
       return bytes.length - 1;
     }
-    function _strftime_l(s, maxsize, format, tm) {
+    function _strftime_l(s, maxsize, format, tm, loc) {
       return _strftime(s, maxsize, format, tm);
     }
     var wasmTableMirror = [];
@@ -3718,105 +3407,91 @@ var createModule = (() => {
     Module['FS_createLazyFile'] = FS.createLazyFile;
     Module['FS_createDevice'] = FS.createDevice;
     var asmLibraryArg = {
-      e: ___assert_fail,
-      a: ___cxa_allocate_exception,
-      J: ___cxa_rethrow,
-      b: ___cxa_throw,
-      f: ___syscall_fcntl64,
-      B: ___syscall_getdents64,
-      S: ___syscall_ioctl,
-      H: ___syscall_lstat64,
-      K: ___syscall_newfstatat,
-      p: ___syscall_openat,
-      I: ___syscall_stat64,
-      z: ___syscall_symlink,
-      A: ___syscall_unlinkat,
-      M: __emscripten_get_now_is_monotonic,
-      w: __emscripten_throw_longjmp,
-      N: __gmtime_js,
-      O: __localtime_js,
-      P: __mktime_js,
-      C: __mmap_js,
-      D: __munmap_js,
-      Q: __tzset_js,
-      l: _abort,
-      m: _emscripten_date_now,
-      y: _emscripten_get_heap_max,
-      L: _emscripten_get_now,
-      R: _emscripten_memcpy_big,
-      x: _emscripten_resize_heap,
-      F: _environ_get,
-      G: _environ_sizes_get,
-      s: _exit,
-      k: _fd_close,
-      E: _fd_fdstat_get,
-      q: _fd_read,
-      t: _fd_seek,
-      o: _fd_write,
-      u: _getentropy,
-      T: invoke_i,
+      b: ___cxa_allocate_exception,
+      a: ___cxa_throw,
+      n: ___syscall_fcntl64,
+      B: ___syscall_ioctl,
+      o: ___syscall_openat,
+      u: __emscripten_get_now_is_monotonic,
+      v: __emscripten_throw_longjmp,
+      i: _abort,
+      x: _emscripten_get_heap_max,
+      y: _emscripten_get_now,
+      C: _emscripten_memcpy_big,
+      w: _emscripten_resize_heap,
+      z: _environ_get,
+      A: _environ_sizes_get,
+      r: _exit,
+      l: _fd_close,
+      m: _fd_read,
+      s: _fd_seek,
+      k: _fd_write,
+      D: invoke_i,
       c: invoke_ii,
-      j: invoke_iii,
-      g: invoke_iiii,
-      U: invoke_iiiii,
+      h: invoke_iii,
+      e: invoke_iiii,
+      q: invoke_iiiii,
       d: invoke_vi,
-      h: invoke_vii,
-      i: invoke_viii,
-      n: invoke_viiiii,
-      r: invoke_viiiiii,
-      v: _strftime_l,
+      f: invoke_vii,
+      g: invoke_viii,
+      j: invoke_viiiii,
+      p: invoke_viiiiii,
+      t: _strftime_l,
     };
     var asm = createWasm();
     var ___wasm_call_ctors = (Module['___wasm_call_ctors'] = function () {
-      return (___wasm_call_ctors = Module['___wasm_call_ctors'] = Module['asm']['W']).apply(null, arguments);
+      return (___wasm_call_ctors = Module['___wasm_call_ctors'] = Module['asm']['F']).apply(null, arguments);
     });
-    var _free = (Module['_free'] = function () {
-      return (_free = Module['_free'] = Module['asm']['X']).apply(null, arguments);
+    var _getDecodedImage = (Module['_getDecodedImage'] = function () {
+      return (_getDecodedImage = Module['_getDecodedImage'] = Module['asm']['G']).apply(null, arguments);
+    });
+    var _removeImage = (Module['_removeImage'] = function () {
+      return (_removeImage = Module['_removeImage'] = Module['asm']['H']).apply(null, arguments);
+    });
+    var _preSolveCalib = (Module['_preSolveCalib'] = function () {
+      return (_preSolveCalib = Module['_preSolveCalib'] = Module['asm']['I']).apply(null, arguments);
+    });
+    var _getImageResolution = (Module['_getImageResolution'] = function () {
+      return (_getImageResolution = Module['_getImageResolution'] = Module['asm']['J']).apply(null, arguments);
+    });
+    var _getCalibResult = (Module['_getCalibResult'] = function () {
+      return (_getCalibResult = Module['_getCalibResult'] = Module['asm']['K']).apply(null, arguments);
     });
     var _solveCalib = (Module['_solveCalib'] = function () {
-      return (_solveCalib = Module['_solveCalib'] = Module['asm']['Y']).apply(null, arguments);
+      return (_solveCalib = Module['_solveCalib'] = Module['asm']['L']).apply(null, arguments);
     });
-    var _readImg = (Module['_readImg'] = function () {
-      return (_readImg = Module['_readImg'] = Module['asm']['Z']).apply(null, arguments);
+    var _readImage = (Module['_readImage'] = function () {
+      return (_readImage = Module['_readImage'] = Module['asm']['M']).apply(null, arguments);
     });
-    var _readPCD = (Module['_readPCD'] = function () {
-      return (_readPCD = Module['_readPCD'] = Module['asm']['_']).apply(null, arguments);
+    var _clear = (Module['_clear'] = function () {
+      return (_clear = Module['_clear'] = Module['asm']['N']).apply(null, arguments);
     });
     var _readCheckerboardParams = (Module['_readCheckerboardParams'] = function () {
-      return (_readCheckerboardParams = Module['_readCheckerboardParams'] = Module['asm']['$']).apply(null, arguments);
-    });
-    var _readCameraParams = (Module['_readCameraParams'] = function () {
-      return (_readCameraParams = Module['_readCameraParams'] = Module['asm']['aa']).apply(null, arguments);
-    });
-    var _readCheckerPosition = (Module['_readCheckerPosition'] = function () {
-      return (_readCheckerPosition = Module['_readCheckerPosition'] = Module['asm']['ba']).apply(null, arguments);
+      return (_readCheckerboardParams = Module['_readCheckerboardParams'] = Module['asm']['O']).apply(null, arguments);
     });
     var _malloc = (Module['_malloc'] = function () {
-      return (_malloc = Module['_malloc'] = Module['asm']['ca']).apply(null, arguments);
+      return (_malloc = Module['_malloc'] = Module['asm']['Q']).apply(null, arguments);
+    });
+    var _free = (Module['_free'] = function () {
+      return (_free = Module['_free'] = Module['asm']['R']).apply(null, arguments);
     });
     var ___errno_location = (Module['___errno_location'] = function () {
-      return (___errno_location = Module['___errno_location'] = Module['asm']['ea']).apply(null, arguments);
-    });
-    var _emscripten_builtin_memalign = (Module['_emscripten_builtin_memalign'] = function () {
-      return (_emscripten_builtin_memalign = Module['_emscripten_builtin_memalign'] = Module['asm']['fa']).apply(
-        null,
-        arguments
-      );
+      return (___errno_location = Module['___errno_location'] = Module['asm']['S']).apply(null, arguments);
     });
     var _setThrew = (Module['_setThrew'] = function () {
-      return (_setThrew = Module['_setThrew'] = Module['asm']['ga']).apply(null, arguments);
+      return (_setThrew = Module['_setThrew'] = Module['asm']['T']).apply(null, arguments);
     });
     var stackSave = (Module['stackSave'] = function () {
-      return (stackSave = Module['stackSave'] = Module['asm']['ha']).apply(null, arguments);
+      return (stackSave = Module['stackSave'] = Module['asm']['U']).apply(null, arguments);
     });
     var stackRestore = (Module['stackRestore'] = function () {
-      return (stackRestore = Module['stackRestore'] = Module['asm']['ia']).apply(null, arguments);
+      return (stackRestore = Module['stackRestore'] = Module['asm']['V']).apply(null, arguments);
     });
     var stackAlloc = (Module['stackAlloc'] = function () {
-      return (stackAlloc = Module['stackAlloc'] = Module['asm']['ja']).apply(null, arguments);
+      return (stackAlloc = Module['stackAlloc'] = Module['asm']['W']).apply(null, arguments);
     });
     var ___cxa_is_pointer_type = (Module['___cxa_is_pointer_type'] = function () {
-      return (___cxa_is_pointer_type = Module['___cxa_is_pointer_type'] = Module['asm']['ka']).apply(null, arguments);
+      return (___cxa_is_pointer_type = Module['___cxa_is_pointer_type'] = Module['asm']['X']).apply(null, arguments);
     });
     function invoke_vi(index, a1) {
       var sp = stackSave();
