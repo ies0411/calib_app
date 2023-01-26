@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { UploadOutlined } from '@ant-design/icons';
 import { Button, message, Upload, Input, Typography } from 'antd';
-// import createModule from './intrinsicCalib';
+import createModule from '/wasm_intrinsic/intrinsicCalib';
 
 // export default function Intrinsic() {
 //   return (
