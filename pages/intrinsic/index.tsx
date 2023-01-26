@@ -1,3 +1,5 @@
+import './intrinsicCalib';
+
 export default function Intrinsic() {
   return (
     <div>
