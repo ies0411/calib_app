@@ -1,14 +1,14 @@
 import createModule from './intrinsicCalib';
 
 export default function Intrinsic() {
+  let checkerFunction = () => null;
   createModule().then((Module) => {
+    console.log('wasm!!!');
     checkerFunction = Module.cwrap('readCheckerboardParams', 'number');
-    if (checkerFunction(checkerInputs.dx, checkerInputs.dy, checkerInputs.rows, checkerInputs.cols) !== 1) {
+    if (checkerFunction(1, 2, 3, 4) !== 1) {
       console.log('fail to transfer param to WASM!');
     }
-    console.log("wasm!!!")
-  }
-
+  });
 
   return (
     <div>
