@@ -4,7 +4,7 @@
 // import { UploadOutlined } from '@ant-design/icons';
 // import { Button, message, Upload, Input } from 'antd';
 
-import createModule from './extrinsicCalib';
+// import createModule from './extrinsicCalib';
 
 export default function Ext_camlidar() {
   //value
