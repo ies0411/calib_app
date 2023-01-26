@@ -1,4 +1,4 @@
-import './intrinsicCalib';
+import createModule from './intrinsicCalib';
 
 export default function Intrinsic() {
   return (
