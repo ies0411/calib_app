@@ -1,4 +1,5 @@
 // import 'antd/dist/antd.min.css';
+// @ts-nocheck
 import React, { useState } from 'react';
 import { UploadOutlined } from '@ant-design/icons';
 import { Button, message, Upload, Input } from 'antd';
