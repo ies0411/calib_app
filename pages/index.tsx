@@ -3,7 +3,7 @@ export default function Home() {
   // console.log(results);
   return (
     <div>
-      <h1>test</h1>
+      <h1>Calibration App</h1>
     </div>
   );
 }

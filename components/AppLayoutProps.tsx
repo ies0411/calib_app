@@ -23,6 +23,7 @@ const style = css`
     display: flex;
     justify-content: center;
     border-bottom: 1px solid gray;
+
     /* position: fixed; */
   }
 
@@ -60,6 +61,7 @@ const style = css`
   #header-area img {
     width: 128px;
     height: 36px;
+    cursor: pointer;
   }
 `;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -92,7 +94,7 @@ const items: MenuItem[] = [
     // getItem('Submenu', 'sub3', null, [getItem('Option 7', '7'), getItem('Option 8', '8')]),
   ]),
 
-  getItem('cam-imu', 'sub4', <SettingOutlined />, [getItem('Option 9', '9')]),
+  getItem('cam-imu', 'sub4', <SettingOutlined />, [getItem('ext', '9')]),
 ];
 
 type Props = {
@@ -113,8 +115,23 @@ export default function AppLayout({ children }: Props) {
     switch (e.key) {
       case '1':
         console.log('set intrinsic');
-        // setPage((current) => '/intrinsic');
         router.push('/intrinsic');
+      case '2':
+        console.log('set stereo');
+        router.push('/stereo');
+      case '3':
+        console.log('set fisheye');
+        router.push('/fisheye');
+
+      case '5':
+        console.log('set ext cam & lidar');
+        router.push('/ext_camlidar');
+      case '6':
+        console.log('set ext');
+        router.push('/ext_targetless');
+      case '9':
+        console.log('set imu & cam');
+        router.push('/ext_camIMU');
         break;
 
       default:
@@ -129,7 +146,7 @@ export default function AppLayout({ children }: Props) {
           <img
             src="image/logo_superbai_color.png"
             onClick={() => {
-              router.push('/about');
+              router.push('/');
             }}
             alt="logo"
           />
