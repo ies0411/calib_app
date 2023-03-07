@@ -1,0 +1,28 @@
+#upload {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  display: flex;
+}
+
+#upload > #pcd {
+  padding: 5px;
+}
+#upload > #img {
+  padding: 5px;
+}
+
+/* #param > #dist {
+  padding: 10px;
+} */
+#param {
+  width: 1024px;
+}
+#param > #intrinsic {
+  padding: 10px;
+}
+#param > #filter {
+  padding: 10px;
+}
+#param > #checker {
+  padding: 10px;
+}
